@@ -1,0 +1,56 @@
+{
+  "name": "voice-ai",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist":  "node build-dist.js"
+  },
+  "build": {
+    "appId": "com.voiceai.app",
+    "productName": "Voice AI",
+    "afterPack": "./afterPack.js",
+    "files": [
+      "**/*",
+      "!test-tts.js",
+      "!rcedit.exe",
+      "!afterPack.js",
+      "!build-dist.js",
+      "!*.orig"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Voice AI"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "javascript-obfuscator": "^5.4.3"
+  },
+  "dependencies": {
+    "msedge-tts": "^2.0.5"
+  }
+}

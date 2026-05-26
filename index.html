@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Voice AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ===== LOGIN VIEW ===== -->
+    <div class="view" id="viewLogin">
+        <div class="login-card">
+            <div class="login-orb"></div>
+            <h1 class="login-title">Voice AI</h1>
+            <p class="login-subtitle">Авторизация</p>
+            <div class="login-fields">
+                <input type="text"     id="loginUsername" class="field-input" placeholder="Логин"  autocomplete="off" spellcheck="false">
+                <input type="password" id="loginPassword" class="field-input" placeholder="Пароль" autocomplete="off">
+            </div>
+            <div class="login-error" id="loginError"></div>
+            <button class="login-btn" id="loginBtn">Войти</button>
+        </div>
+    </div>
+
+    <!-- ===== MAIN VIEW ===== -->
+    <div class="view view--hidden" id="viewMain">
+        <button class="nav-btn" id="openSettings" title="Настройки">⚙</button>
+
+        <div class="orb-container">
+            <div class="rings" id="rings">
+                <div class="ring r1"></div>
+                <div class="ring r2"></div>
+                <div class="ring r3"></div>
+            </div>
+            <div class="orb-wrapper" id="orbWrapper">
+                <div class="orb" id="orb">
+                    <div class="orb-shine"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status" id="status">Запуск...</div>
+
+        <div class="controls-row">
+            <div class="volume-track">
+                <div class="volume-fill" id="volumeFill"></div>
+            </div>
+            <span class="vol-label" id="volLabel">0 / 30</span>
+            <button class="mute-btn" id="muteBtn" title="Выключить микрофон">🎤</button>
+        </div>
+
+        <div class="text-input-row">
+            <input type="text" id="textInput" class="text-field" placeholder="Напечатай сообщение и нажми Enter...">
+            <button id="sendBtn" class="send-btn" title="Отправить">↑</button>
+        </div>
+
+        <div class="chat" id="chat"></div>
+    </div>
+
+    <!-- ===== SETTINGS VIEW ===== -->
+    <div class="view view--hidden" id="viewSettings">
+        <div class="settings-page">
+            <div class="settings-topbar">
+                <button class="back-btn" id="closeSettings">← Назад</button>
+                <span class="settings-title">Настройки ИИ</span>
+                <button class="logout-btn" id="logoutBtn">Выйти (<span id="profileName">—</span>)</button>
+            </div>
+
+            <div class="settings-body">
+
+                <!-- === STT — только для разработчика === -->
+                <div class="settings-section" data-dev-only="true">
+                    <h3 class="section-title">Распознавание речи (STT)</h3>
+                    <label class="field-label">Провайдер</label>
+                    <select id="sttProviderSelect" class="field-input">
+                        <option value="groq">Groq Whisper — быстро и бесплатно</option>
+                        <option value="openai">OpenAI Whisper</option>
+                    </select>
+                    <label class="field-label">
+                        API ключ STT
+                        <span class="field-hint">оставь пустым — используется ключ LLM</span>
+                    </label>
+                    <input type="password" id="sttApiKeyInput" class="field-input" placeholder="(пусто = тот же ключ что у LLM)">
+                </div>
+
+                <!-- === LLM — только для разработчика === -->
+                <div class="settings-section" data-dev-only="true">
+                    <h3 class="section-title">Языковая модель (LLM)</h3>
+                    <label class="field-label">Провайдер</label>
+                    <select id="llmProviderSelect" class="field-input">
+                        <option value="groq">Groq</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="custom">Свой (Custom)</option>
+                    </select>
+                    <label class="field-label">API ключ</label>
+                    <input type="password" id="llmApiKeyInput" class="field-input" placeholder="gsk_... / sk-... / sk-or-...">
+                    <div id="llmBaseUrlRow" style="display:none">
+                        <label class="field-label">Базовый URL</label>
+                        <input type="text" id="llmBaseUrlInput" class="field-input" placeholder="https://openrouter.ai/api/v1">
+                    </div>
+                    <label class="field-label">Модель</label>
+                    <select id="llmModelSelect" class="field-input"></select>
+                    <input type="text" id="llmModelInput" class="field-input" style="display:none"
+                           placeholder="google/gemini-2.5-pro, anthropic/claude-opus-4, gpt-4o...">
+                </div>
+
+                <!-- === НАСТРОЕНИЕ === -->
+                <div class="settings-section">
+                    <h3 class="section-title">Настроение ИИ</h3>
+                    <div class="mood-grid">
+                        <button class="mood-btn" data-mood="">
+                            <div class="mood-preview"></div>
+                            <span>Обычный</span>
+                        </button>
+                        <button class="mood-btn" data-mood="angry">
+                            <div class="mood-preview"></div>
+                            <span>😠 Злой</span>
+                        </button>
+                        <button class="mood-btn" data-mood="playful">
+                            <div class="mood-preview"></div>
+                            <span>&#x1F61B; Игривый</span>
+                        </button>
+                        <button class="mood-btn" data-mood="happy">
+                            <div class="mood-preview"></div>
+                            <span>😄 Весёлый</span>
+                        </button>
+                        <button class="mood-btn" data-mood="lazy">
+                            <div class="mood-preview"></div>
+                            <span>😴 Ленивый</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- === ПОВЕДЕНИЕ === -->
+                <div class="settings-section">
+                    <h3 class="section-title">Поведение ИИ</h3>
+                    <div data-dev-only="true">
+                        <label class="field-label">Системный промпт</label>
+                        <textarea id="systemPrompt" class="field-input field-textarea"></textarea>
+                    </div>
+                    <label class="field-label">Голос ИИ</label>
+                    <select id="voiceSelect" class="field-input">
+                        <option value="ru-RU-SvetlanaNeural">Светлана — женский</option>
+                        <option value="ru-RU-DmitryNeural">Дмитрий — мужской</option>
+                    </select>
+                </div>
+
+                <!-- === МИКРОФОН === -->
+                <div class="settings-section">
+                    <h3 class="section-title">Микрофон</h3>
+                    <label class="field-label">Устройство</label>
+                    <div class="mic-row">
+                        <select id="micSelect" class="field-input"></select>
+                        <button class="test-btn" id="testMicBtn">▶ Тест</button>
+                    </div>
+                    <div id="testStatus" class="test-status"></div>
+                    <div class="sliders-grid">
+                        <div>
+                            <label class="field-label">Порог срабатывания: <strong id="thresholdLabel">30</strong></label>
+                            <input type="range" id="thresholdInput" class="field-range" min="5" max="100" value="30">
+                        </div>
+                        <div>
+                            <label class="field-label">Пауза тишины (мс): <strong id="silenceLabel">2500</strong></label>
+                            <input type="range" id="silenceInput" class="field-range" min="500" max="6000" value="2500" step="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- === ЦВЕТ ФОНА === -->
+                <div class="settings-section">
+                    <h3 class="section-title">Цвет фона</h3>
+                    <div class="color-swatches">
+                        <button class="swatch" data-color="#0d0d12" style="background:#0d0d12" title="Ночь"></button>
+                        <button class="swatch" data-color="#080c18" style="background:#080c18" title="Полночь"></button>
+                        <button class="swatch" data-color="#0e0a1a" style="background:#0e0a1a" title="Аметист"></button>
+                        <button class="swatch" data-color="#07100e" style="background:#07100e" title="Лес"></button>
+                        <button class="swatch" data-color="#100a0a" style="background:#100a0a" title="Уголь"></button>
+                        <button class="swatch" data-color="#111111" style="background:#111111" title="Антрацит"></button>
+                        <label class="swatch swatch--custom" title="Свой цвет">
+                            <span>+</span>
+                            <input type="color" id="customColor" value="#0d0d12">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="save-btn" id="saveSettings">Сохранить</button>
+                    <button class="clear-btn" id="clearChat">Очистить историю чата</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
