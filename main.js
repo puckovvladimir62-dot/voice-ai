@@ -81,6 +81,11 @@ function createWindow() {
     });
 
     win.loadFile("index.html");
+    win.webContents.on("before-input-event", (e, input) => {
+        if (input.control && input.shift && input.key === 'I') {
+            win.webContents.openDevTools();
+        }
+    });
     win.once("ready-to-show", () => {
         if (app.isPackaged) setupAutoUpdater(win);
     });

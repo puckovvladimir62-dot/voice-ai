@@ -1,10 +1,13 @@
 const { ipcRenderer } = require('electron');
 
 // ========= SETTINGS =========
-const STORAGE_KEY = 'voiceai_v1';
+const STORAGE_KEY  = 'voiceai_v1';
+const SESSION_KEY  = 'voiceai_session';
 
 // ========= PROFILES =========
-const FREE_API_KEY = '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';
+const FREE_API_KEY      = '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';
+const YANDEX_TTS_KEY    = 'AQVNwjPaCeGsMEwiEr7zQ2y8kq--4jzug2R5Ykkv';
+const YANDEX_FOLDER_ID  = 'b1gifc4mrstnp858uh67';
 
 const PROFILES = [
     { login: 'VladimirPutin', password: 'pizzafire', role: 'dev',  name: 'Разработчик'    },
@@ -17,16 +20,19 @@ const PROFILES = [
 let currentProfile = null;
 
 const DEFAULT_CFG = {
-    sttProvider:  'groq',
-    sttApiKey:    '',
-    llmProvider:  'groq',
-    llmApiKey:    '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',
-    llmBaseUrl:   '',
-    systemPrompt: 'Ты хороший друг который подробно отвечает на вопросы и любит японский автопром. Ты материшься но не очень много, общаешься свободно и легко.',
-    model:        'llama-3.3-70b-versatile',
-    voice:        'ru-RU-SvetlanaNeural',
-    threshold:    30,
-    silenceMs:    2500
+    sttProvider:    'groq',
+    sttApiKey:      '',
+    llmProvider:    'groq',
+    llmApiKey:      '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',
+    llmBaseUrl:     '',
+    systemPrompt:   'Ты хороший друг который подробно отвечает на вопросы и любит японский автопром. Ты материшься но не очень много, общаешься свободно и легко.',
+    model:          'llama-3.3-70b-versatile',
+    ttsProvider:    'yandex',
+    yandexTtsKey:   YANDEX_TTS_KEY,
+    yandexFolderId: YANDEX_FOLDER_ID,
+    voice:          'alena',
+    threshold:      30,
+    silenceMs:      2500
 };
 
 // ========= MOODS =========
@@ -109,6 +115,28 @@ const LLM_MODELS = {
     deepseek: [
         { value: 'deepseek-chat',     label: 'DeepSeek Chat — умный'     },
         { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (R1)'    }
+    ],
+    gemini: [
+        { value: 'gemini-1.5-flash-latest',          label: 'Gemini 1.5 Flash — стабильный 🎤'         },
+        { value: 'gemini-1.5-flash-8b',            label: 'Gemini 1.5 Flash 8B — лёгкий 🎤'          },
+        { value: 'gemini-2.0-flash',               label: 'Gemini 2.0 Flash — быстрый 🎤'            },
+        { value: 'gemini-2.5-flash-preview-05-20', label: 'Gemini 2.5 Flash — умный 🎤 (preview)'    }
+    ]
+};
+
+// ========= TTS VOICES =========
+const TTS_VOICES = {
+    edge: [
+        { value: 'ru-RU-SvetlanaNeural', label: 'Светлана — женский'           },
+        { value: 'ru-RU-DmitryNeural',   label: 'Дмитрий — мужской'            }
+    ],
+    yandex: [
+        { value: 'alena',  label: 'Алёна — женский (нейросеть)'                },
+        { value: 'filipp', label: 'Филипп — мужской (нейросеть)'               },
+        { value: 'jane',   label: 'Джейн — женский, эмоциональный'             },
+        { value: 'omazh',  label: 'Омаж — женский, дружелюбный'                },
+        { value: 'ermil',  label: 'Ермил — мужской, эмоциональный'             },
+        { value: 'zahar',  label: 'Захар — мужской'                            }
     ]
 };
 
@@ -129,6 +157,19 @@ try {
     }
     if (!saved.llmProvider) saved.llmProvider = 'groq';
     if (!saved.sttProvider) saved.sttProvider = 'groq';
+    // Откат с Gemini на Groq (Gemini заблокирован в РФ)
+    if (saved.llmProvider === 'gemini') {
+        saved.llmProvider = 'groq';
+        saved.llmApiKey   = FREE_API_KEY;
+        saved.model       = 'llama-3.3-70b-versatile';
+    }
+    // Переводим всех на Яндекс TTS (основной голос)
+    if (!saved.ttsProvider || saved.ttsProvider === 'edge') {
+        saved.ttsProvider    = 'yandex';
+        saved.voice          = 'alena';
+    }
+    if (!saved.yandexTtsKey)   saved.yandexTtsKey   = YANDEX_TTS_KEY;
+    if (!saved.yandexFolderId) saved.yandexFolderId = YANDEX_FOLDER_ID;
     Object.assign(cfg, saved);
 } catch {}
 
@@ -163,10 +204,15 @@ const testMicBtn        = document.getElementById('testMicBtn');
 const testStatus        = document.getElementById('testStatus');
 const textInput         = document.getElementById('textInput');
 const sendBtn           = document.getElementById('sendBtn');
+const ttsProviderSelect  = document.getElementById('ttsProviderSelect');
+const yandexTtsKeyInput  = document.getElementById('yandexTtsKeyInput');
+const yandexFolderIdInput= document.getElementById('yandexFolderIdInput');
+const yandexTtsFields    = document.getElementById('yandexTtsFields');
 const loginUsername     = document.getElementById('loginUsername');
 const loginPassword     = document.getElementById('loginPassword');
 const loginBtn          = document.getElementById('loginBtn');
 const loginError        = document.getElementById('loginError');
+const rememberMe        = document.getElementById('rememberMe');
 const logoutBtn         = document.getElementById('logoutBtn');
 const profileNameEl     = document.getElementById('profileName');
 
@@ -206,6 +252,23 @@ function onLlmProviderChange() {
 
 llmProviderSelect.onchange = onLlmProviderChange;
 
+function onTtsProviderChange() {
+    const provider = ttsProviderSelect.value;
+    const voices   = TTS_VOICES[provider] || TTS_VOICES.edge;
+    const prev     = voiceSelect.value;
+    voiceSelect.innerHTML = '';
+    voices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.value;
+        opt.textContent = v.label;
+        voiceSelect.appendChild(opt);
+    });
+    // Пробуем восстановить прежний выбор
+    if ([...voiceSelect.options].some(o => o.value === prev)) voiceSelect.value = prev;
+    if (yandexTtsFields) yandexTtsFields.style.display = provider === 'yandex' ? '' : 'none';
+}
+ttsProviderSelect.onchange = onTtsProviderChange;
+
 // ========= APPLY SAVED SETTINGS =========
 sttProviderSelect.value    = cfg.sttProvider || 'groq';
 sttApiKeyInput.value       = cfg.sttApiKey   || '';
@@ -213,11 +276,17 @@ llmProviderSelect.value    = cfg.llmProvider  || 'groq';
 llmApiKeyInput.value       = cfg.llmApiKey   || '';
 llmBaseUrlInput.value      = cfg.llmBaseUrl  || '';
 systemPromptEl.value       = cfg.systemPrompt;
-voiceSelect.value          = cfg.voice;
 thresholdInput.value       = cfg.threshold;
 thresholdLabel.textContent = cfg.threshold;
 silenceInput.value         = cfg.silenceMs;
 silenceLabel.textContent   = cfg.silenceMs;
+
+// Применяем TTS провайдер и голос
+ttsProviderSelect.value    = cfg.ttsProvider    || 'edge';
+yandexTtsKeyInput.value    = cfg.yandexTtsKey   || '';
+yandexFolderIdInput.value  = cfg.yandexFolderId || '';
+onTtsProviderChange();
+voiceSelect.value = cfg.voice;
 
 // Применяем сохранённое настроение
 applyMood(cfg.mood || '');
@@ -264,8 +333,16 @@ function doLogin() {
     }
     currentProfile         = profile;
     loginError.textContent = '';
-    loginUsername.value    = '';
-    loginPassword.value    = '';
+
+    // Запомнить сессию
+    if (rememberMe.checked) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ login: profile.login, password: profile.password }));
+    } else {
+        localStorage.removeItem(SESSION_KEY);
+    }
+
+    loginUsername.value = '';
+    loginPassword.value = '';
 
     if (profile.role !== 'dev') {
         // Для обычного пользователя — заблокировать API
@@ -292,6 +369,7 @@ loginUsername.addEventListener('keydown', e => { if (e.key === 'Enter') loginPas
 loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 logoutBtn.onclick = () => {
+    localStorage.removeItem(SESSION_KEY);
     currentProfile = null;
     isRecording    = false;
     isProcessing   = false;
@@ -319,10 +397,11 @@ document.getElementById('saveSettings').onclick = () => {
 
     if (isUser) {
         // Обычный пользователь: только базовые настройки
-        cfg.voice     = voiceSelect.value;
-        cfg.threshold = parseInt(thresholdInput.value);
-        cfg.silenceMs = parseInt(silenceInput.value);
-        cfg.micId     = micSelect.value;
+        cfg.voice       = voiceSelect.value;
+        cfg.ttsProvider = ttsProviderSelect.value;
+        cfg.threshold   = parseInt(thresholdInput.value);
+        cfg.silenceMs   = parseInt(silenceInput.value);
+        cfg.micId       = micSelect.value;
         // API ключ всегда заблокирован
         cfg.llmApiKey   = FREE_API_KEY;
         cfg.sttProvider = 'groq';
@@ -339,9 +418,12 @@ document.getElementById('saveSettings').onclick = () => {
             model:        hasPreset
                             ? (llmModelSelect.value || DEFAULT_CFG.model)
                             : (llmModelInput.value.trim() || 'gpt-4o'),
-            systemPrompt: systemPromptEl.value.trim() || DEFAULT_CFG.systemPrompt,
-            voice:        voiceSelect.value,
-            threshold:    parseInt(thresholdInput.value),
+            systemPrompt:   systemPromptEl.value.trim() || DEFAULT_CFG.systemPrompt,
+            ttsProvider:    ttsProviderSelect.value,
+            yandexTtsKey:   yandexTtsKeyInput.value.trim(),
+            yandexFolderId: yandexFolderIdInput.value.trim(),
+            voice:          voiceSelect.value,
+            threshold:      parseInt(thresholdInput.value),
             silenceMs:    parseInt(silenceInput.value),
             bgColor:      cfg.bgColor,
             mood:         cfg.mood || '',
@@ -573,19 +655,26 @@ async function handleAudio() {
     }, 45000);
 
     try {
-        const text = await transcribe(blob);
-        if (!text || text.trim().length < 2) {
-            setOrbState('idle');
-            return;
+        let reply;
+
+        if (cfg.llmProvider === 'gemini') {
+            // Gemini нативно понимает аудио — STT не нужен
+            addMsg('user', 'Ты', '🎤 голосовое');
+            reply = await sendToGeminiAudio(blob);
+            pushHistory('user', '[голосовое сообщение]');
+        } else {
+            const text = await transcribe(blob);
+            if (!text || text.trim().length < 2) {
+                setOrbState('idle');
+                return;
+            }
+            addMsg('user', 'Ты', text);
+            pushHistory('user', text);
+            reply = await sendToAI();
         }
 
-        addMsg('user', 'Ты', text);
-        pushHistory('user', text);
-
-        const reply = await sendToAI();
         addMsg('ai', 'ИИ', reply);
         pushHistory('assistant', reply);
-
         setOrbState('speaking');
         await speak(reply);
         if (!isInterrupted) setOrbState('idle');
@@ -611,7 +700,9 @@ function fetchWithTimeout(url, options, ms = 20000) {
 
 async function transcribe(blob) {
     const stt    = STT_PROVIDERS[cfg.sttProvider] || STT_PROVIDERS.groq;
-    const apiKey = cfg.sttApiKey || cfg.llmApiKey;
+    // Если в качестве LLM стоит Gemini — для STT используем бесплатный Groq ключ
+    let apiKey   = cfg.sttApiKey || cfg.llmApiKey;
+    if (!cfg.sttApiKey && apiKey.startsWith('AIza')) apiKey = FREE_API_KEY;
 
     const form = new FormData();
     form.append('file', blob, 'audio.webm');
@@ -630,6 +721,8 @@ async function transcribe(blob) {
 }
 
 async function sendToAI() {
+    if (cfg.llmProvider === 'gemini') return sendToGeminiText();
+
     // Вычисляем базовый URL
     let baseUrl;
     if (cfg.llmProvider === 'custom') {
@@ -671,6 +764,64 @@ async function sendToAI() {
     const d = await res.json();
     if (d.error) throw new Error('LLM: ' + d.error.message);
     return d.choices[0].message.content;
+}
+
+// ========= GEMINI API =========
+function buildGeminiBody(extraUserParts) {
+    const moodNote = MOOD_PROMPTS[cfg.mood || ''];
+    const systemContent = moodNote ? cfg.systemPrompt + '\n\n' + moodNote : cfg.systemPrompt;
+
+    // Конвертируем историю в формат Gemini (role: user/model)
+    const contents = history.map(h => ({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.content }]
+    }));
+
+    if (extraUserParts) {
+        contents.push({ role: 'user', parts: extraUserParts });
+    }
+
+    return {
+        systemInstruction: { parts: [{ text: systemContent }] },
+        contents,
+        generationConfig: { temperature: 1.0 }
+    };
+}
+
+async function geminiRequest(body) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${cfg.llmApiKey}`;
+    const res  = await fetchWithTimeout(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body)
+    }, 45000);
+    const d = await res.json();
+    if (d.error) throw new Error('Gemini: ' + (d.error.message || JSON.stringify(d.error)));
+    return d.candidates[0].content.parts.map(p => p.text || '').join('');
+}
+
+// Текстовый запрос (история уже содержит текущее сообщение пользователя)
+async function sendToGeminiText() {
+    return geminiRequest(buildGeminiBody(null));
+}
+
+// Аудио запрос — отправляем blob напрямую в Gemini
+async function sendToGeminiAudio(audioBlob) {
+    const base64 = await blobToBase64(audioBlob);
+    const parts  = [
+        { inlineData: { mimeType: 'audio/webm;codecs=opus', data: base64 } },
+        { text: 'Ответь на русском языке.' }
+    ];
+    return geminiRequest(buildGeminiBody(parts));
+}
+
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
 }
 
 // ========= TEXT INPUT =========
@@ -728,7 +879,11 @@ function splitSentences(text) {
     return parts ? parts.map(s => s.trim()).filter(s => s.length > 1) : [text];
 }
 
-async function speak(text) {
+function speak(text) {
+    return cfg.ttsProvider === 'yandex' ? speakWithYandex(text) : speakWithEdge(text);
+}
+
+async function speakWithEdge(text) {
     const gen = ++speakGen;
     const voice = cfg.voice || DEFAULT_CFG.voice;
     const sentences = splitSentences(text);
@@ -770,6 +925,57 @@ async function speak(text) {
     }
 }
 
+async function speakWithYandex(text) {
+    const gen       = ++speakGen;
+    const sentences = splitSentences(text);
+    if (!sentences.length) return;
+
+    for (const sentence of sentences) {
+        if (gen !== speakGen) break;
+        if (!sentence.trim()) continue;
+        try {
+            const params = new URLSearchParams({
+                text:     sentence,
+                lang:     'ru-RU',
+                voice:    cfg.voice || 'alena',
+                format:   'mp3',
+                folderId: cfg.yandexFolderId || YANDEX_FOLDER_ID,
+                speed:    '1.0'
+            });
+            const res = await fetchWithTimeout(
+                'https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize',
+                {
+                    method:  'POST',
+                    headers: {
+                        'Authorization': `Api-Key ${cfg.yandexTtsKey || YANDEX_TTS_KEY}`,
+                        'Content-Type':  'application/x-www-form-urlencoded'
+                    },
+                    body: params.toString()
+                },
+                15000
+            );
+            if (!res.ok) {
+                const e = await res.json().catch(() => ({}));
+                throw new Error('Yandex TTS: ' + (e.message || res.status));
+            }
+            const buf = await res.arrayBuffer();
+            if (gen !== speakGen) break;
+            const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+            await new Promise(resolve => {
+                speakResolve = resolve;
+                currentAudio = new Audio(url);
+                const done = () => { URL.revokeObjectURL(url); currentAudio = null; speakResolve = null; resolve(); };
+                currentAudio.onended = done;
+                currentAudio.onerror = done;
+                currentAudio.play().catch(done);
+            });
+        } catch (err) {
+            console.error('[Yandex TTS]', err);
+            setStatus('❌ Яндекс TTS: ' + err.message);
+        }
+    }
+}
+
 function stopSpeaking() {
     speakGen++;
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -790,5 +996,20 @@ function esc(s) {
 }
 
 // ========= INIT =========
-showView('login');
-setTimeout(() => loginUsername.focus(), 50);
+(function () {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+        if (saved) {
+            const profile = PROFILES.find(p => p.login === saved.login && p.password === saved.password);
+            if (profile) {
+                rememberMe.checked = true;
+                loginUsername.value = saved.login;
+                loginPassword.value = saved.password;
+                doLogin();
+                return;
+            }
+        }
+    } catch (e) {}
+    showView('login');
+    setTimeout(() => loginUsername.focus(), 50);
+})();

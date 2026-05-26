@@ -750,6 +750,26 @@ body {
     margin-bottom: 6px;
 }
 
+.remember-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    user-select: none;
+}
+.remember-row input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.remember-row:hover { color: var(--text); }
+
 .login-error {
     font-size: 12px;
     color: #ff6b6b;

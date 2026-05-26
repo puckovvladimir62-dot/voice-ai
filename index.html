@@ -19,6 +19,10 @@
                 <input type="text"     id="loginUsername" class="field-input" placeholder="Логин"  autocomplete="off" spellcheck="false">
                 <input type="password" id="loginPassword" class="field-input" placeholder="Пароль" autocomplete="off">
             </div>
+            <label class="remember-row">
+                <input type="checkbox" id="rememberMe">
+                <span>Запомнить меня</span>
+            </label>
             <div class="login-error" id="loginError"></div>
             <button class="login-btn" id="loginBtn">Войти</button>
         </div>
@@ -91,6 +95,7 @@
                     <label class="field-label">Провайдер</label>
                     <select id="llmProviderSelect" class="field-input">
                         <option value="groq">Groq</option>
+                        <option value="gemini">Google Gemini 🎤 (нативное аудио)</option>
                         <option value="openai">OpenAI</option>
                         <option value="deepseek">DeepSeek</option>
                         <option value="openrouter">OpenRouter</option>
@@ -142,11 +147,19 @@
                         <label class="field-label">Системный промпт</label>
                         <textarea id="systemPrompt" class="field-input field-textarea"></textarea>
                     </div>
-                    <label class="field-label">Голос ИИ</label>
-                    <select id="voiceSelect" class="field-input">
-                        <option value="ru-RU-SvetlanaNeural">Светлана — женский</option>
-                        <option value="ru-RU-DmitryNeural">Дмитрий — мужской</option>
+                    <label class="field-label">Синтез речи (TTS)</label>
+                    <select id="ttsProviderSelect" class="field-input">
+                        <option value="edge">Microsoft Edge — бесплатно</option>
+                        <option value="yandex">Яндекс SpeechKit 🇷🇺 — лучший русский</option>
                     </select>
+                    <div id="yandexTtsFields" style="display:none" data-dev-only="true">
+                        <label class="field-label">API ключ Яндекс <span class="field-hint">cloud.yandex.ru → SpeechKit</span></label>
+                        <input type="password" id="yandexTtsKeyInput" class="field-input" placeholder="AQVN...">
+                        <label class="field-label">Folder ID</label>
+                        <input type="text" id="yandexFolderIdInput" class="field-input" placeholder="b1g...">
+                    </div>
+                    <label class="field-label">Голос ИИ</label>
+                    <select id="voiceSelect" class="field-input"></select>
                 </div>
 
                 <!-- === МИКРОФОН === -->
