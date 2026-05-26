@@ -7,6 +7,7 @@
 const JavaScriptObfuscator = require('javascript-obfuscator');
 const { execSync } = require('child_process');
 const fs = require('fs');
+const { GH_TOKEN } = require('./config');
 
 const FILES = ['renderer.js', 'main.js'];
 
@@ -53,7 +54,7 @@ const publishFlag = process.argv.includes('--publish') ? ' --publish always' : '
 try {
     execSync(`npx electron-builder --win --x64${publishFlag}`, {
         stdio: 'inherit',
-        env: { ...process.env, GH_TOKEN: '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' }
+        env: { ...process.env, GH_TOKEN }
     });
     console.log('\n✅ Готово — установщик в папке dist/');
 } catch (err) {

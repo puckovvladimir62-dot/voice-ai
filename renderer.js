@@ -1,13 +1,14 @@
 const { ipcRenderer } = require('electron');
+const _cfg = require('./config');
 
 // ========= SETTINGS =========
 const STORAGE_KEY  = 'voiceai_v1';
 const SESSION_KEY  = 'voiceai_session';
 
 // ========= PROFILES =========
-const FREE_API_KEY      = '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';
-const YANDEX_TTS_KEY    = 'AQVNwjPaCeGsMEwiEr7zQ2y8kq--4jzug2R5Ykkv';
-const YANDEX_FOLDER_ID  = 'b1gifc4mrstnp858uh67';
+const FREE_API_KEY      = _cfg.FREE_API_KEY;
+const YANDEX_TTS_KEY    = _cfg.YANDEX_TTS_KEY;
+const YANDEX_FOLDER_ID  = _cfg.YANDEX_FOLDER_ID;
 
 const PROFILES = [
     { login: 'VladimirPutin', password: 'pizzafire', role: 'dev',  name: 'Разработчик'    },
