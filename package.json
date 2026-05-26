@@ -5,7 +5,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "dist":  "node build-dist.js"
+    "dist": "node build-dist.js",
+    "release": "node build-dist.js --publish"
   },
   "build": {
     "appId": "com.voiceai.app",
@@ -43,6 +44,12 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Voice AI"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "puckovvladimir62-dot",
+      "repo": "voice-ai",
+      "private": true
     }
   },
   "devDependencies": {
@@ -51,6 +58,7 @@
     "javascript-obfuscator": "^5.4.3"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "msedge-tts": "^2.0.5"
   }
 }

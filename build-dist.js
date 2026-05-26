@@ -47,8 +47,14 @@ FILES.forEach(f => {
 
 console.log('\n📦 Сборка установщика...\n');
 
+// Флаг --publish always = загрузить релиз на GitHub
+const publishFlag = process.argv.includes('--publish') ? ' --publish always' : '';
+
 try {
-    execSync('npx electron-builder --win --x64', { stdio: 'inherit' });
+    execSync(`npx electron-builder --win --x64${publishFlag}`, {
+        stdio: 'inherit',
+        env: { ...process.env, GH_TOKEN: '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' }
+    });
     console.log('\n✅ Готово — установщик в папке dist/');
 } catch (err) {
     console.error('\n❌ Ошибка сборки:', err.message);
