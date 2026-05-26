@@ -5,7 +5,7 @@ const STORAGE_KEY  = 'voiceai_v1';
 const SESSION_KEY  = 'voiceai_session';
 
 // ========= PROFILES =========
-const FREE_API_KEY      = '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';
+const FREE_API_KEY      = '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';
 const YANDEX_TTS_KEY    = 'AQVNwjPaCeGsMEwiEr7zQ2y8kq--4jzug2R5Ykkv';
 const YANDEX_FOLDER_ID  = 'b1gifc4mrstnp858uh67';
 
@@ -23,7 +23,7 @@ const DEFAULT_CFG = {
     sttProvider:    'groq',
     sttApiKey:      '',
     llmProvider:    'groq',
-    llmApiKey:      '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',
+    llmApiKey:      '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',
     llmBaseUrl:     '',
     systemPrompt:   'Ты хороший друг который подробно отвечает на вопросы и любит японский автопром. Ты материшься но не очень много, общаешься свободно и легко.',
     model:          'llama-3.3-70b-versatile',
