@@ -14,23 +14,46 @@
         <div class="login-card">
             <div class="login-orb"></div>
             <h1 class="login-title">Voice AI</h1>
-            <p class="login-subtitle">Авторизация</p>
-            <div class="login-fields">
-                <input type="text"     id="loginUsername" class="field-input" placeholder="Логин"  autocomplete="off" spellcheck="false">
-                <input type="password" id="loginPassword" class="field-input" placeholder="Пароль" autocomplete="off">
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin">Вход</button>
+                <button class="auth-tab" id="tabRegister">Регистрация</button>
             </div>
-            <label class="remember-row">
-                <input type="checkbox" id="rememberMe">
-                <span>Запомнить меня</span>
-            </label>
-            <div class="login-error" id="loginError"></div>
-            <button class="login-btn" id="loginBtn">Войти</button>
+
+            <!-- Вход -->
+            <div id="formLogin">
+                <div class="login-fields">
+                    <input type="email"    id="loginEmail"    class="field-input" placeholder="Email" autocomplete="off" spellcheck="false">
+                    <input type="password" id="loginPassword" class="field-input" placeholder="Пароль" autocomplete="off">
+                </div>
+                <label class="remember-row">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Запомнить меня</span>
+                </label>
+                <div class="login-error" id="loginError"></div>
+                <button class="login-btn" id="loginBtn">Войти</button>
+            </div>
+
+            <!-- Регистрация -->
+            <div id="formRegister" style="display:none">
+                <div class="login-fields">
+                    <input type="text"     id="regName"     class="field-input" placeholder="Имя" autocomplete="off" spellcheck="false">
+                    <input type="email"    id="regEmail"    class="field-input" placeholder="Email" autocomplete="off" spellcheck="false">
+                    <input type="password" id="regPassword" class="field-input" placeholder="Пароль (мин. 6 символов)" autocomplete="off">
+                </div>
+                <div class="login-error"   id="regError"></div>
+                <div class="login-success" id="regSuccess"></div>
+                <button class="login-btn" id="regBtn">Зарегистрироваться</button>
+            </div>
         </div>
     </div>
 
     <!-- ===== MAIN VIEW ===== -->
     <div class="view view--hidden" id="viewMain">
-        <button class="nav-btn" id="openSettings" title="Настройки">⚙</button>
+        <div class="nav-btns">
+            <button class="nav-btn" id="openCommands" title="Голосовые команды">⚡</button>
+            <button class="nav-btn" id="openSettings" title="Настройки">⚙</button>
+        </div>
 
         <div class="orb-container">
             <div class="rings" id="rings">
@@ -61,6 +84,7 @@
         </div>
 
         <div class="chat" id="chat"></div>
+        <div class="quick-prompts" id="quickPromptsBar"></div>
     </div>
 
     <!-- ===== SETTINGS VIEW ===== -->
@@ -74,13 +98,14 @@
 
             <div class="settings-body">
 
-                <!-- === STT — только для разработчика === -->
-                <div class="settings-section" data-dev-only="true">
+                <!-- === STT === -->
+                <div class="settings-section">
                     <h3 class="section-title">Распознавание речи (STT)</h3>
                     <label class="field-label">Провайдер</label>
                     <select id="sttProviderSelect" class="field-input">
                         <option value="groq">Groq Whisper — быстро и бесплатно</option>
                         <option value="openai">OpenAI Whisper</option>
+                        <option value="browser">Web Speech (Google) — без ключа 🌐</option>
                     </select>
                     <label class="field-label">
                         API ключ STT
@@ -89,8 +114,8 @@
                     <input type="password" id="sttApiKeyInput" class="field-input" placeholder="(пусто = тот же ключ что у LLM)">
                 </div>
 
-                <!-- === LLM — только для разработчика === -->
-                <div class="settings-section" data-dev-only="true">
+                <!-- === LLM === -->
+                <div class="settings-section">
                     <h3 class="section-title">Языковая модель (LLM)</h3>
                     <label class="field-label">Провайдер</label>
                     <select id="llmProviderSelect" class="field-input">
@@ -101,8 +126,6 @@
                         <option value="openrouter">OpenRouter</option>
                         <option value="custom">Свой (Custom)</option>
                     </select>
-                    <label class="field-label">API ключ</label>
-                    <input type="password" id="llmApiKeyInput" class="field-input" placeholder="gsk_... / sk-... / sk-or-...">
                     <div id="llmBaseUrlRow" style="display:none">
                         <label class="field-label">Базовый URL</label>
                         <input type="text" id="llmBaseUrlInput" class="field-input" placeholder="https://openrouter.ai/api/v1">
@@ -111,6 +134,23 @@
                     <select id="llmModelSelect" class="field-input"></select>
                     <input type="text" id="llmModelInput" class="field-input" style="display:none"
                            placeholder="google/gemini-2.5-pro, anthropic/claude-opus-4, gpt-4o...">
+                </div>
+
+                <!-- === API КЛЮЧ — виден всем === -->
+                <div class="settings-section">
+                    <h3 class="section-title">API ключ</h3>
+
+                    <!-- Бейдж "бесплатно" когда DeepSeek + серверный ключ -->
+                    <div id="freeKeyNotice" class="free-key-notice" style="display:none">
+                        ✓ Бесплатный ключ активен — вводить ничего не нужно
+                    </div>
+
+                    <!-- Поле ключа — скрывается для бесплатного DeepSeek -->
+                    <div id="apiKeyRow">
+                        <label class="field-label" id="apiKeyLabel">Свой ключ</label>
+                        <input type="password" id="llmApiKeyInput" class="field-input"
+                               placeholder="sk-...">
+                    </div>
                 </div>
 
                 <!-- === НАСТРОЕНИЕ === -->
@@ -143,16 +183,17 @@
                 <!-- === ПОВЕДЕНИЕ === -->
                 <div class="settings-section">
                     <h3 class="section-title">Поведение ИИ</h3>
-                    <div data-dev-only="true">
+                    <div>
                         <label class="field-label">Системный промпт</label>
                         <textarea id="systemPrompt" class="field-input field-textarea"></textarea>
                     </div>
                     <label class="field-label">Синтез речи (TTS)</label>
                     <select id="ttsProviderSelect" class="field-input">
-                        <option value="edge">Microsoft Edge — бесплатно</option>
+                        <option value="groq">Groq PlayAI 🤖 — нейросеть, бесплатно</option>
                         <option value="yandex">Яндекс SpeechKit 🇷🇺 — лучший русский</option>
+                        <option value="edge">Microsoft Edge — бесплатно</option>
                     </select>
-                    <div id="yandexTtsFields" style="display:none" data-dev-only="true">
+                    <div id="yandexTtsFields" style="display:none">
                         <label class="field-label">API ключ Яндекс <span class="field-hint">cloud.yandex.ru → SpeechKit</span></label>
                         <input type="password" id="yandexTtsKeyInput" class="field-input" placeholder="AQVN...">
                         <label class="field-label">Folder ID</label>
@@ -183,6 +224,16 @@
                     </div>
                 </div>
 
+                <!-- === БЫСТРЫЕ ПРОМПТЫ === -->
+                <div class="settings-section">
+                    <h3 class="section-title">Быстрые промпты</h3>
+                    <p class="field-hint" style="margin-bottom:10px;font-size:12px">
+                        Кнопки под чатом — одно нажатие вставляет фразу в поле ввода
+                    </p>
+                    <div id="quickPromptsList" class="quick-prompts-list"></div>
+                    <button class="add-cmd-btn" id="addQuickPromptBtn">+ Добавить</button>
+                </div>
+
                 <!-- === ЦВЕТ ФОНА === -->
                 <div class="settings-section">
                     <h3 class="section-title">Цвет фона</h3>
@@ -204,6 +255,48 @@
                     <button class="save-btn" id="saveSettings">Сохранить</button>
                     <button class="clear-btn" id="clearChat">Очистить историю чата</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== COMMANDS VIEW ===== -->
+    <div class="view view--hidden" id="viewCommands">
+        <div class="commands-page">
+            <div class="settings-topbar">
+                <button class="back-btn" id="closeCommands">← Назад</button>
+                <span class="settings-title">⚡ ORB VOICE — команды</span>
+            </div>
+            <div class="commands-body">
+
+                <!-- Wake words -->
+                <div class="settings-section">
+                    <h3 class="section-title">Имена орба (через запятую)</h3>
+                    <p class="field-hint" style="margin-bottom:8px;font-size:12px">
+                        Скажи имя орба перед командой — иначе речь уйдёт к ИИ
+                    </p>
+                    <input type="text" id="wakeWordsInput" class="field-input"
+                           placeholder="орб, orb, orb voice">
+                    <button class="cmd-save-btn" id="saveWakeWords" style="margin-top:6px">Сохранить</button>
+                </div>
+
+                <!-- Voice log -->
+                <div class="settings-section">
+                    <h3 class="section-title">Лог распознавания речи</h3>
+                    <div class="voice-log" id="voiceLog">
+                        <div class="voice-log-empty">Пока тихо... Скажи что-нибудь 🎤</div>
+                    </div>
+                </div>
+
+                <!-- Commands list -->
+                <div class="settings-section">
+                    <h3 class="section-title">Голосовые команды</h3>
+                    <p class="field-hint" style="margin-bottom:10px;font-size:12px">
+                        Скажи имя орба + триггерную фразу → команда выполняется без ИИ
+                    </p>
+                    <div id="commandsViewList" class="commands-list"></div>
+                    <button class="add-cmd-btn" id="addCommandViewBtn">+ Добавить команду</button>
+                </div>
+
             </div>
         </div>
     </div>

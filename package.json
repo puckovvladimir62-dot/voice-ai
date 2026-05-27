@@ -58,7 +58,9 @@
     "javascript-obfuscator": "^5.4.3"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
     "electron-updater": "^6.8.3",
+    "marked": "^4.3.0",
     "msedge-tts": "^2.0.5"
   }
 }
